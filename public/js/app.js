@@ -143,7 +143,13 @@ function renderSearchResults(results) {
 }
 
 function showArticle(url) {
-  window.location.hash = url;
+  console.log('showArticle called with URL:', url);
+  // Extract category, subcategory, and slug from URL
+  const parts = url.substring(1).split('/');
+  console.log('URL parts:', parts);
+  if (parts.length === 3) {
+    showArticleDetail(parts[0], parts[1], parts[2]);
+  }
 }
 
 function renderAll() {
@@ -172,28 +178,56 @@ function handleBackToTop() {
 
 function handleHashChange() {
   const hash = window.location.hash;
+  console.log('Hash changed:', hash);
   if (hash && hash.startsWith('#') && !['#categories', '#articles', '#section-about'].includes(hash) && !hash.startsWith('#!')) {
     const parts = hash.substring(1).split('/');
+    console.log('Hash parts:', parts);
     if (parts.length === 3) {
       showArticleDetail(parts[0], parts[1], parts[2]);
+    } else {
+      console.log('Hash parts length is not 3:', parts.length);
     }
   } else {
+    console.log('Back to main');
     backButtonToMain();
   }
 }
 
 function showArticleDetail(category, subcategory, slug) {
   const url = `#${category}/${subcategory}/${slug}`;
+  console.log('Looking for article with URL:', url);
+  
+  // Debug: Check if state.articles is populated
+  console.log('State articles length:', state.articles.length);
+  
+  // Try to find the article
   const article = state.articles.find(a => a.url === url);
-  if (!article) return;
+  if (!article) {
+    console.log('Article not found for URL:', url);
+    // Try to find by partial match
+    const partialMatch = state.articles.find(a => a.url.includes(category) && a.url.includes(subcategory) && a.url.includes(slug));
+    if (partialMatch) {
+      console.log('Found partial match:', partialMatch.url);
+    }
+    return;
+  }
+  console.log('Found article:', article.title);
 
+  // Get DOM elements
   const detailContainer = document.getElementById('article-detail');
   const mainContent = document.getElementById('main-content');
+  console.log('Detail container:', detailContainer);
+  console.log('Main content:', mainContent);
 
   if (detailContainer && mainContent) {
-    mainContent.classList.add('hidden');
+    // Hide main content and show article detail
+    mainContent.style.display = 'none';
+    detailContainer.style.display = 'block';
     detailContainer.classList.remove('hidden');
-    detailContainer.innerHTML = `
+    detailContainer.removeAttribute('hidden');
+    
+    // Create article content
+    const articleContent = `
       <div class="container mx-auto px-4 py-8 max-w-4xl">
         <button id="back-button" class="mb-6 text-[var(--accent)] hover:text-[var(--accent-hover)] font-medium inline-flex items-center">
           <i class="fa fa-arrow-left mr-2"></i>
@@ -211,11 +245,21 @@ function showArticleDetail(category, subcategory, slug) {
         </article>
       </div>
     `;
+    
+    console.log('Setting article content...');
+    detailContainer.innerHTML = articleContent;
+    console.log('Article content set successfully');
+    
     window.scrollTo(0, 0);
 
     // Add click handler for back button
     const backBtn = document.getElementById('back-button');
-    if (backBtn) backBtn.addEventListener('click', backButtonToMain);
+    if (backBtn) {
+      console.log('Adding back button listener');
+      backBtn.addEventListener('click', backButtonToMain);
+    }
+  } else {
+    console.log('DOM elements not found');
   }
 }
 
@@ -232,8 +276,15 @@ function formatDate(dateStr) {
 function backButtonToMain() {
   const detailContainer = document.getElementById('article-detail');
   const mainContent = document.getElementById('main-content');
-  if (detailContainer) detailContainer.classList.add('hidden');
-  if (mainContent) mainContent.classList.remove('hidden');
+  if (detailContainer) {
+    detailContainer.classList.add('hidden');
+    detailContainer.setAttribute('hidden', 'hidden');
+    detailContainer.style.display = 'none';
+  }
+  if (mainContent) {
+    mainContent.classList.remove('hidden');
+    mainContent.style.display = 'block';
+  }
   window.location.hash = '';
 }
 
@@ -244,6 +295,12 @@ function init() {
   }
   updateThemeIcon();
   updateLanguageText();
+
+  // Debug: Check if articles are loaded
+  console.log('Initializing app...');
+  console.log('Window.ARTICLES:', window.ARTICLES);
+  console.log('State articles:', state.articles);
+  console.log('Number of articles:', state.articles.length);
 
   // Initialize event listeners
   const toggleHandlers = [
@@ -286,11 +343,39 @@ function init() {
 
 function initArticleCardListeners() {
   // Add click handlers to article cards in the article list
-  document.querySelectorAll('.article-card').forEach(card => {
-    card.addEventListener('click', () => {
+  console.log('Initializing article card listeners...');
+  const cards = document.querySelectorAll('.article-card');
+  console.log('Found article cards:', cards.length);
+  
+  cards.forEach(card => {
+    card.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
       const url = card.dataset.url;
-      if (url) window.location.hash = url;
+      console.log('Card clicked, URL:', url);
+      if (url) {
+        console.log('Calling showArticle with URL:', url);
+        showArticle(url);
+      }
     });
+  });
+  
+  // Also add listeners to direct links
+  const links = document.querySelectorAll('a[href^="#"]');
+  console.log('Found links:', links.length);
+  links.forEach(link => {
+    if (link.href.includes('#') && !['#categories', '#articles', '#section-about'].includes(link.hash)) {
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const url = link.hash;
+        console.log('Link clicked, URL:', url);
+        if (url) {
+          console.log('Calling showArticle with URL:', url);
+          showArticle(url);
+        }
+      });
+    }
   });
 }
 
