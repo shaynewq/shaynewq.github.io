@@ -1,0 +1,32 @@
+{
+  "name": "personal-knowledge-base",
+  "version": "1.0.0",
+  "description": "个人知识库页面 - 基于 GitHub Actions 的静态博客",
+  "main": "scripts/build.js",
+  "scripts": {
+    "build": "node scripts/build.js",
+    "dev": "node scripts/build.js --watch",
+    "serve": "npx serve -p 4000 dist"
+  },
+  "keywords": [
+    "knowledge-base",
+    "personal",
+    "blog",
+    "markdown",
+    "static-site-generator"
+  ],
+  "author": "shaynewq",
+  "license": "MIT",
+  "dependencies": {
+    "marked": "^9.1.6",
+    "gray-matter": "^4.0.3",
+    "highlight.js": "^11.9.0",
+    "front-matter": "^4.0.2"
+  },
+  "devDependencies": {
+    "serve": "^14.2.1"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}
