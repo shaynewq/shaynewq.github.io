@@ -144,6 +144,8 @@ function renderSearchResults(results) {
 
 function showArticle(url) {
   console.log('showArticle called with URL:', url);
+  // Update address bar
+  window.location.hash = url;
   // Extract category, subcategory, and slug from URL
   const parts = url.substring(1).split('/');
   console.log('URL parts:', parts);
@@ -253,11 +255,15 @@ function showArticleDetail(category, subcategory, slug) {
     window.scrollTo(0, 0);
 
     // Add click handler for back button
-    const backBtn = document.getElementById('back-button');
-    if (backBtn) {
-      console.log('Adding back button listener');
-      backBtn.addEventListener('click', backButtonToMain);
-    }
+    setTimeout(() => {
+      const backBtn = document.getElementById('back-button');
+      if (backBtn) {
+        console.log('Adding back button listener');
+        backBtn.addEventListener('click', backButtonToMain);
+      } else {
+        console.log('Back button not found');
+      }
+    }, 100);
   } else {
     console.log('DOM elements not found');
   }
@@ -315,6 +321,15 @@ function init() {
     if (el) el.addEventListener('click', fn);
   });
 
+  // Add click handler to logo for back to main
+  const logo = document.querySelector('.navbar a[aria-label="回到首页"]');
+  if (logo) {
+    logo.addEventListener('click', (e) => {
+      e.preventDefault();
+      backButtonToMain();
+    });
+  }
+
   const searchInputs = ['search-input', 'mobile-search-input'];
   searchInputs.forEach(id => {
     const input = document.getElementById(id);
@@ -339,6 +354,9 @@ function init() {
 
   // Add click handlers to article cards
   initArticleCardListeners();
+  
+  // Add click handlers to subcategory cards
+  initSubcategoryListeners();
 }
 
 function initArticleCardListeners() {
@@ -377,6 +395,106 @@ function initArticleCardListeners() {
       });
     }
   });
+}
+
+function initSubcategoryListeners() {
+  // Add click handlers to subcategory cards
+  console.log('Initializing subcategory listeners...');
+  const subcategoryCards = document.querySelectorAll('.card[tabindex="0"][role="button"]');
+  console.log('Found subcategory cards:', subcategoryCards.length);
+  
+  subcategoryCards.forEach(card => {
+    card.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      // Extract category and subcategory from the card
+      const h4 = card.querySelector('h4');
+      const subcategory = h4.textContent.trim();
+      
+      // Find the parent category section
+      const section = card.closest('section');
+      const categoryHeading = section.querySelector('h3');
+      const category = categoryHeading.textContent.trim();
+      
+      console.log('Subcategory clicked:', category, '/', subcategory);
+      
+      // Show articles for this subcategory
+      showSubcategoryArticles(category, subcategory);
+    });
+  });
+}
+
+function showSubcategoryArticles(category, subcategory) {
+  console.log('Showing articles for:', category, '/', subcategory);
+  
+  // Filter articles by category and subcategory
+  const articles = state.articles.filter(article => 
+    article.category === category && article.subcategory === subcategory
+  );
+  
+  console.log('Found articles:', articles.length);
+  
+  // Get DOM elements
+  const detailContainer = document.getElementById('article-detail');
+  const mainContent = document.getElementById('main-content');
+  
+  if (detailContainer && mainContent) {
+    // Hide main content and show article detail
+    mainContent.style.display = 'none';
+    detailContainer.style.display = 'block';
+    detailContainer.classList.remove('hidden');
+    detailContainer.removeAttribute('hidden');
+    
+    // Create subcategory articles content
+    const articlesContent = `
+      <div class="container mx-auto px-4 py-8 max-w-4xl">
+        <button id="back-button" class="mb-6 text-[var(--accent)] hover:text-[var(--accent-hover)] font-medium inline-flex items-center">
+          <i class="fa fa-arrow-left mr-2"></i>
+          ${t('home')}
+        </button>
+        <div class="mb-8">
+          <h1 class="text-2xl font-bold mb-2">${category} / ${subcategory}</h1>
+          <p class="text-sm text-[var(--text-secondary)]">${articles.length} 篇文章</p>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+          ${articles.map(article => `
+            <article class="card card-hover p-4 article-card" role="article" data-url="${article.url}">
+              <h3 class="font-semibold text-sm mb-2 hover:text-[var(--accent)] transition-colors line-clamp-2">
+                <a href="${article.url}">${article.title?.[state.lang] || article.title?.zh}</a>
+              </h3>
+              <p class="text-xs text-[var(--text-secondary)] mb-2 line-clamp-2">
+                ${article.description ? (article.description.zh || article.description) : article.excerpt}
+              </p>
+              <time class="text-xs text-[var(--text-muted)]">${formatDate(article.date)}</time>
+            </article>
+          `).join('')}
+        </div>
+      </div>
+    `;
+    
+    console.log('Setting subcategory articles content...');
+    detailContainer.innerHTML = articlesContent;
+    console.log('Subcategory articles content set successfully');
+    
+    window.scrollTo(0, 0);
+
+    // Add click handler for back button
+    setTimeout(() => {
+      const backBtn = document.getElementById('back-button');
+      if (backBtn) {
+        console.log('Adding back button listener');
+        backBtn.addEventListener('click', backButtonToMain);
+      } else {
+        console.log('Back button not found');
+      }
+      
+      // Reinitialize article card listeners for the new articles
+      initArticleCardListeners();
+    }, 100);
+  } else {
+    console.log('DOM elements not found');
+  }
 }
 
 // Export functions for global access
