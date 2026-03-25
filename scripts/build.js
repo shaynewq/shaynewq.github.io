@@ -154,7 +154,7 @@ function generateHomePage(articles) {
     .replace('{{articles}}', articlesHtml);
 
   return layoutTemplate
-    .replace('{{title}}', '个人知识库')
+    .replace('{{title}}', 'shayne')
     .replace('{{content}}', content)
     .replace('{{articles}}', JSON.stringify(articles.map(a => ({
       title: a.title,
@@ -165,7 +165,8 @@ function generateHomePage(articles) {
       description: a.description,
       excerpt: a.excerpt,
       tags: a.tags,
-      author: a.author
+      author: a.author,
+      html: a.html
     }))));
 }
 
