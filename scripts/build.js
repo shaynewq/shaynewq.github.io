@@ -78,17 +78,18 @@ function generateCategoriesHtml(groupedArticles, categoryConfig) {
           <i class="fa ${config.icon}"></i>
         </div>
         <h3 id="${name}-heading" class="text-2xl font-semibold">
-          <span data-i18n="${name}">${name}</span>
+          <span data-i18n="${name}">${config.displayName || name}</span>
         </h3>
       </div>
       <ul class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4" role="list">
-        ${config.subcategories.map(sub => {
+        ${config.subcategories.map((sub, i) => {
+          const subName = config.subcategoryNames[i] || sub;
           const subArticles = groupedArticles[name]?.[sub] || [];
           return `
             <li>
               <article class="card card-hover p-5" tabindex="0" role="button">
                 <h4 class="font-semibold mb-2 hover:text-[var(--accent)] transition-colors">
-                  ${sub}
+                  ${subName}
                 </h4>
                 <p class="text-sm text-[var(--text-secondary)]">${subArticles.length} 篇文章</p>
                 ${subArticles.length > 0 ? `
@@ -115,7 +116,7 @@ function generateCategoriesHtml(groupedArticles, categoryConfig) {
  */
 function generateArticlesHtml(articles) {
   return articles.slice(0, 6).map((article, index) => `
-    <article class="card card-hover p-6" role="article">
+    <article class="card card-hover p-6 article-card" role="article" data-url="${article.url}">
       <div class="flex items-start justify-between mb-4">
         <span class="tag" aria-label="分类: ${article.category} / ${article.subcategory}">
           ${article.category} / ${article.subcategory}
@@ -191,6 +192,21 @@ async function build() {
   // Create .nojekyll file to prevent Jekyll processing
   fs.writeFileSync(path.join(DIST_DIR, '.nojekyll'), '', 'utf8');
   console.log('✅ Created .nojekyll file');
+
+  // Copy JavaScript files to dist/js
+  const srcJsDir = path.join(__dirname, '../public/js');
+  const destJsDir = path.join(DIST_DIR, 'js');
+
+  if (fs.existsSync(srcJsDir)) {
+    ensureDir(destJsDir);
+    const jsFiles = fs.readdirSync(srcJsDir).filter(f => f.endsWith('.js'));
+    jsFiles.forEach(file => {
+      const src = path.join(srcJsDir, file);
+      const dest = path.join(destJsDir, file);
+      fs.copyFileSync(src, dest);
+    });
+    console.log(`✅ Copied ${jsFiles.length} JavaScript file(s)`);
+  }
 
   console.log('🎉 Build completed successfully!');
 }

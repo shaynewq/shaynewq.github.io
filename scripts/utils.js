@@ -103,24 +103,32 @@ function groupByCategory(articles) {
  */
 function getCategoryConfig() {
   return {
-    '器': {
+    'qi': {
+      displayName: '器',
       icon: 'fa-cubes',
-      subcategories: ['云原生', '大数据', '存储', '开发', '运维'],
+      subcategories: ['cloud-native', 'big-data', 'storage', 'development', 'ops'],
+      subcategoryNames: ['云原生', '大数据', '存储', '开发', '运维'],
       order: 1
     },
-    '术': {
+    'shu': {
+      displayName: '术',
       icon: 'fa-flask',
-      subcategories: ['AI', '网络', '计算机基础'],
+      subcategories: ['AI', 'network', 'cs-basics'],
+      subcategoryNames: ['AI', '网络', '计算机基础'],
       order: 2
     },
-    '道': {
+    'dao': {
+      displayName: '道',
       icon: 'fa-compass',
-      subcategories: ['分布式'],
+      subcategories: ['distributed'],
+      subcategoryNames: ['分布式'],
       order: 3
     },
-    '关于': {
+    'about': {
+      displayName: '关于',
       icon: 'fa-user',
-      subcategories: ['个人简历'],
+      subcategories: ['resume'],
+      subcategoryNames: ['个人简历'],
       order: 4
     }
   };
