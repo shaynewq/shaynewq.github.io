@@ -75,7 +75,7 @@ function generateCategoriesHtml(groupedArticles, categoryConfig) {
     <section class="mb-12" aria-labelledby="${name}-heading">
       <div class="flex items-center mb-6">
         <div class="category-icon mr-3" aria-hidden="true">
-          <i class="fa fa-${config.icon}"></i>
+          <i class="fa ${config.icon}"></i>
         </div>
         <h3 id="${name}-heading" class="text-2xl font-semibold">
           <span data-i18n="${name}">${name}</span>
