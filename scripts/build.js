@@ -188,6 +188,10 @@ async function build() {
   fs.writeFileSync(path.join(DIST_DIR, 'index.html'), indexHtml, 'utf8');
   console.log('✅ Generated index.html');
 
+  // Create .nojekyll file to prevent Jekyll processing
+  fs.writeFileSync(path.join(DIST_DIR, '.nojekyll'), '', 'utf8');
+  console.log('✅ Created .nojekyll file');
+
   console.log('🎉 Build completed successfully!');
 }
 
