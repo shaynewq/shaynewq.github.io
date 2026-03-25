@@ -172,10 +172,10 @@ function handleBackToTop() {
 
 function handleHashChange() {
   const hash = window.location.hash;
-  if (hash && hash.startsWith('#') && !['#categories', '#articles', '#about'].includes(hash)) {
+  if (hash && hash.startsWith('#') && !['#categories', '#articles', '#section-about'].includes(hash) && !hash.startsWith('#!')) {
     const parts = hash.substring(1).split('/');
     if (parts.length === 3) {
-      showArticleDetail(...parts);
+      showArticleDetail(parts[0], parts[1], parts[2]);
     }
   } else {
     backButtonToMain();

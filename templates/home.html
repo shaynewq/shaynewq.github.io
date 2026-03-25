@@ -35,11 +35,20 @@
         <label for="mobile-search-input" class="sr-only">搜索文章</label>
         <input type="search" id="mobile-search-input" placeholder="搜索文章..." class="search-input w-full">
       </div>
+      <div class="flex justify-between items-center px-2 mb-3">
+        <button id="mobile-language-toggle" class="px-3 py-2 text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] rounded-lg" aria-label="切换语言">
+          <i class="fa fa-globe" aria-hidden="true"></i>
+          <span id="mobile-current-language" class="ml-1 text-sm">中文</span>
+        </button>
+        <button id="mobile-theme-toggle" class="px-3 py-2 text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] rounded-lg" aria-label="切换主题">
+          <i class="fa fa-moon-o" id="mobile-theme-icon" aria-hidden="true"></i>
+        </button>
+      </div>
       <ul class="space-y-1 bg-[var(--bg-secondary)] rounded-lg p-2" role="menubar">
         <li><a href="https://github.com/shaynewq/shaynewq.github.io/blob/main/README.md" class="block py-2 px-3 hover:bg-[var(--bg-tertiary)] rounded-md" role="menuitem" target="_blank">README</a></li>
         <li><a href="#categories" class="block py-2 px-3 hover:bg-[var(--bg-tertiary)] rounded-md" role="menuitem" data-i18n="categories">知识分类</a></li>
         <li><a href="#articles" class="block py-2 px-3 hover:bg-[var(--bg-tertiary)] rounded-md" role="menuitem" data-i18n="articles">最新文章</a></li>
-        <li><a href="#about" class="block py-2 px-3 hover:bg-[var(--bg-tertiary)] rounded-md" role="menuitem" data-i18n="about">关于</a></li>
+        <li><a href="#section-about" class="block py-2 px-3 hover:bg-[var(--bg-tertiary)] rounded-md" role="menuitem" data-i18n="about">关于</a></li>
       </ul>
     </div>
   </div>
@@ -96,7 +105,7 @@
   </section>
 
   <!-- 关于 -->
-  <section id="about" class="py-12 md:py-16">
+  <section id="section-about" class="py-12 md:py-16">
     <div class="container mx-auto px-4 text-center">
       <div class="max-w-lg mx-auto">
         <div class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-[var(--accent)] text-white text-xl mb-4" aria-hidden="true">
