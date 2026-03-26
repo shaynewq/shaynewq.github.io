@@ -47,11 +47,15 @@ function loadAllArticles() {
 
       if (front.draft) return;
 
+      // 确保使用英文的分类和子分类名称生成URL
+      const category = categoryDisplayNameMap[front.category] || front.category;
+      const subcategory = subcategoryDisplayNameMap[front.subcategory] || front.subcategory;
+      
       const article = {
         ...front,
         title: front.title,
         description: front.description,
-        url: `#${front.category}/${front.subcategory}/${path.basename(file.path, '.md')}`,
+        url: `#${category}/${subcategory}/${path.basename(file.path, '.md')}`,
         content: parsed.content,
         html: parsed.html,
         excerpt: generateExcerpt(parsed.content, 150)
@@ -94,6 +98,7 @@ function generateCategoriesHtml(groupedArticles, categoryConfig) {
                 <h4 class="font-semibold mb-2 hover:text-[var(--accent)] transition-colors">
                   ${subName}
                 </h4>
+                <input type="hidden" class="subcategory-value" value="${sub}">
                 <p class="text-sm text-[var(--text-secondary)]">${subArticles.length} 篇文章</p>
                 ${subArticles.length > 0 ? `
                   <ul class="mt-4 space-y-2 text-sm" role="list">

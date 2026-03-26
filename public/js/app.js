@@ -614,7 +614,11 @@ function initSubcategoryListeners() {
       
       // Extract category and subcategory from the card
       const h4 = card.querySelector('h4');
-      const subcategory = h4.textContent.trim();
+      const subcategoryDisplay = h4.textContent.trim();
+      
+      // Get the actual subcategory value from the hidden input
+      const subcategoryInput = card.querySelector('.subcategory-value');
+      const subcategory = subcategoryInput ? subcategoryInput.value : subcategoryDisplay;
       
       // Find the parent category section
       const section = card.closest('section');
@@ -624,7 +628,7 @@ function initSubcategoryListeners() {
       // Map the internationalized category name to the actual category value
       const category = Config.categoryDisplayNameMap[categoryName] || categoryName.toLowerCase();
       
-      console.log('Subcategory clicked:', categoryName, '->', category, '/', subcategory);
+      console.log('Subcategory clicked:', categoryName, '->', category, '/', subcategory, '(display:', subcategoryDisplay, ')');
       
       // Show articles for this subcategory
       showSubcategoryArticles(category, subcategory);
