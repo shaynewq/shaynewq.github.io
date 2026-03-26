@@ -222,11 +222,13 @@ async function build() {
 
   if (fs.existsSync(srcJsDir)) {
     ensureDir(destJsDir);
-    const jsFiles = fs.readdirSync(srcJsDir).filter(f => f.endsWith('.js') && f !== 'config.js');
+    // 复制所有js文件，包括config.js
+    const jsFiles = fs.readdirSync(srcJsDir).filter(f => f.endsWith('.js'));
     jsFiles.forEach(file => {
       const src = path.join(srcJsDir, file);
       const dest = path.join(destJsDir, file);
       fs.copyFileSync(src, dest);
+      console.log(`📄 Copied: ${file}`);
     });
     console.log(`✅ Copied ${jsFiles.length} JavaScript file(s)`);
   }

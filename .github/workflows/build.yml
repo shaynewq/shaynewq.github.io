@@ -61,3 +61,6 @@ jobs:
         publish_dir: ./dist
         user_name: github-actions[bot]
         user_email: github-actions[bot]@users.noreply.github.com
+        # 确保子目录被正确部署
+        keep_files: false
+        force_orphan: true
