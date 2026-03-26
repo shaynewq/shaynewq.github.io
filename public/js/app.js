@@ -10,16 +10,17 @@ const state = {
   searchQuery: ''
 };
 
-const i18n = {
+// 导入配置
+const Config = window.Config;
+
+// 导入i18n配置
+const i18n = window.I18N || {
   zh: {
     search: '搜索文章...',
     categories: '知识分类',
     articles: '最新文章',
     aboutCategory: '关于',
     about: '关于',
-    qi: '器',
-    shu: '术',
-    dao: '道',
     home: '首页',
     readMore: '阅读更多',
     noResults: '没有找到相关文章',
@@ -33,9 +34,6 @@ const i18n = {
     articles: 'Latest Articles',
     aboutCategory: 'About',
     about: 'About',
-    qi: 'Tools (器)',
-    shu: 'Techniques (术)',
-    dao: 'Philosophy (道)',
     home: 'Home',
     readMore: 'Read More',
     noResults: 'No articles found',
@@ -69,6 +67,19 @@ function toggleLanguage() {
   localStorage.setItem('lang', state.lang);
   updateLanguageText();
   renderAll();
+  
+  // Re-render current content based on language
+  const hash = window.location.hash;
+  if (hash && hash.startsWith('#') && !['#categories', '#articles', '#section-about'].includes(hash) && !hash.startsWith('#!')) {
+    const parts = hash.substring(1).split('/');
+    if (parts.length === 3) {
+      // Re-render article detail
+      showArticleDetail(parts[0], parts[1], parts[2]);
+    } else if (parts.length === 2) {
+      // Re-render subcategory articles
+      showSubcategoryArticles(parts[0], parts[1]);
+    }
+  }
 }
 
 function updateLanguageText() {
@@ -127,7 +138,7 @@ function renderSearchResults(results) {
         ${a.description?.[state.lang] || a.description?.zh || a.excerpt}
       </p>
       <div class="flex items-center justify-between text-xs text-[var(--text-muted)]">
-        <span class="tag">${a.category}/${a.subcategory}</span>
+        <span class="tag">${Config.categoryNameMap[a.category] || a.category}/${Config.subcategoryNameMap[a.subcategory] || a.subcategory}</span>
         <time>${a.date}</time>
       </div>
     </div>
@@ -184,10 +195,19 @@ function handleHashChange() {
   if (hash && hash.startsWith('#') && !['#categories', '#articles', '#section-about'].includes(hash) && !hash.startsWith('#!')) {
     const parts = hash.substring(1).split('/');
     console.log('Hash parts:', parts);
-    if (parts.length === 3) {
+    if (parts.length === 3 && parts[0] !== 'tag') {
       showArticleDetail(parts[0], parts[1], parts[2]);
+    } else if (parts.length === 2 && parts[0] !== 'tag') {
+      // Handle subcategory navigation
+      showSubcategoryArticles(parts[0], parts[1]);
+    } else if (parts.length === 1 && parts[0] !== 'tag') {
+      // Handle category navigation
+      showCategoryArticles(parts[0], parts[0]);
+    } else if (parts.length === 2 && parts[0] === 'tag') {
+      // Handle tag navigation
+      showTagArticles(decodeURIComponent(parts[1]));
     } else {
-      console.log('Hash parts length is not 3:', parts.length);
+      console.log('Hash parts length is not 3, 2, or 1:', parts.length);
     }
   } else {
     console.log('Back to main');
@@ -228,18 +248,31 @@ function showArticleDetail(category, subcategory, slug) {
     detailContainer.classList.remove('hidden');
     detailContainer.removeAttribute('hidden');
     
+    // Get the Chinese category name
+    const chineseCategory = Config.categoryNameMap[category] || category;
+    
+    // Get the subcategory display name
+    const subcategoryDisplayName = Config.subcategoryNameMap[subcategory] || subcategory;
+    
     // Create article content
     const articleContent = `
       <div class="container mx-auto px-4 py-8 max-w-4xl">
-        <button id="back-button" class="mb-6 text-[var(--accent)] hover:text-[var(--accent-hover)] font-medium inline-flex items-center">
+        <button id="back-button" class="mb-4 text-[var(--accent)] hover:text-[var(--accent-hover)] font-medium inline-flex items-center">
           <i class="fa fa-arrow-left mr-2"></i>
           ${t('home')}
         </button>
+        <div class="mb-6 text-sm text-[var(--text-secondary)]">
+          <a href="#" class="hover:text-[var(--accent)]">${t('home')}</a>
+          <span class="mx-2">/</span>
+          <a href="#${category}" class="hover:text-[var(--accent)]">${chineseCategory}</a>
+          <span class="mx-2">/</span>
+          <a href="#${category}/${subcategory}" class="hover:text-[var(--accent)]">${subcategoryDisplayName}</a>
+        </div>
         <article class="article-content">
           <h1>${article.title?.[state.lang] || article.title?.zh}</h1>
           <div class="flex flex-wrap items-center gap-4 text-sm text-[var(--text-secondary)] mb-8 py-4 border-b border-[var(--border)]">
             <time>${formatDate(article.date)}</time>
-            <span class="tag">${article.category}/${article.subcategory}</span>
+            <span class="tag">${chineseCategory}/${subcategoryDisplayName}</span>
             ${article.author ? `<span>${article.author}</span>` : ''}
             ${article.tags?.length ? `<span class="flex gap-2">${article.tags.map(tag => `<span class="tag text-xs">${tag}</span>`).join('')}</span>` : ''}
           </div>
@@ -357,6 +390,12 @@ function init() {
   
   // Add click handlers to subcategory cards
   initSubcategoryListeners();
+  
+  // Add click handlers to category headings
+  initCategoryListeners();
+  
+  // Generate tags
+  generateTags();
 }
 
 function initArticleCardListeners() {
@@ -397,6 +436,171 @@ function initArticleCardListeners() {
   });
 }
 
+function initCategoryListeners() {
+  // Add click handlers to category headings
+  console.log('Initializing category listeners...');
+  const categoryHeadings = document.querySelectorAll('section h3');
+  console.log('Found category headings:', categoryHeadings.length);
+  
+  categoryHeadings.forEach(heading => {
+    // Make heading clickable
+    heading.style.cursor = 'pointer';
+    heading.style.userSelect = 'none';
+    
+    heading.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      const categoryName = heading.textContent.trim();
+      // Map the internationalized category name to the actual category value
+      const category = Config.categoryDisplayNameMap[categoryName] || categoryName.toLowerCase();
+      
+      console.log('Category clicked:', categoryName, '->', category);
+      
+      // Show articles for this category
+      showCategoryArticles(category, categoryName);
+    });
+  });
+}
+
+function generateTags() {
+  // Generate tag cloud
+  console.log('Generating tags...');
+  const tagsContainer = document.getElementById('tags-container');
+  if (!tagsContainer) {
+    console.log('Tags container not found');
+    return;
+  }
+  
+  // Collect all tags from articles
+  const tagCounts = {};
+  state.articles.forEach(article => {
+    if (article.tags && Array.isArray(article.tags)) {
+      article.tags.forEach(tag => {
+        tagCounts[tag] = (tagCounts[tag] || 0) + 1;
+      });
+    }
+  });
+  
+  console.log('Tag counts:', tagCounts);
+  
+  // Generate tag elements
+  const tags = Object.entries(tagCounts).map(([tag, count]) => {
+    const tagElement = document.createElement('a');
+    tagElement.href = `#tag/${encodeURIComponent(tag)}`;
+    tagElement.className = 'tag inline-flex items-center px-3 py-1 rounded-full bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:bg-[var(--accent-light)] hover:text-[var(--accent)] transition-colors';
+    tagElement.textContent = `${tag} (${count})`;
+    tagElement.addEventListener('click', (e) => {
+      e.preventDefault();
+      showTagArticles(tag);
+    });
+    return tagElement;
+  });
+  
+  // Clear container and add tags
+  tagsContainer.innerHTML = '';
+  tags.forEach(tagElement => {
+    tagsContainer.appendChild(tagElement);
+  });
+  
+  console.log('Tags generated successfully');
+}
+
+function showTagArticles(tag) {
+  console.log('Showing articles for tag:', tag);
+  
+  // Filter articles by tag
+  const articles = state.articles.filter(article => 
+    article.tags && Array.isArray(article.tags) && article.tags.includes(tag)
+  );
+  
+  console.log('Found articles:', articles.length);
+  
+  // Get DOM elements
+  const detailContainer = document.getElementById('article-detail');
+  const mainContent = document.getElementById('main-content');
+  
+  if (detailContainer && mainContent) {
+    // Hide main content and show article detail
+    mainContent.style.display = 'none';
+    detailContainer.style.display = 'block';
+    detailContainer.classList.remove('hidden');
+    detailContainer.removeAttribute('hidden');
+    
+
+    
+    // Create tag articles content
+    const articlesContent = `
+      <div class="container mx-auto px-4 py-8 max-w-4xl">
+        <button id="back-button" class="mb-6 text-[var(--accent)] hover:text-[var(--accent-hover)] font-medium inline-flex items-center">
+          <i class="fa fa-arrow-left mr-2"></i>
+          ${t('home')}
+        </button>
+        <div class="mb-8">
+          <h1 class="text-2xl font-bold mb-2">标签: ${tag}</h1>
+          <p class="text-sm text-[var(--text-secondary)]">${articles.length} 篇文章</p>
+        </div>
+        ${articles.length > 0 ? `
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          ${articles.map(article => {
+            // Get Chinese category name for the article
+            const articleChineseCategory = Config.categoryNameMap[article.category] || article.category;
+            
+            // Get subcategory display name for the article
+            const articleSubcategoryDisplayName = Config.subcategoryNameMap[article.subcategory] || article.subcategory;
+            
+            return `
+            <article class="card card-hover p-4 article-card" role="article" data-url="${article.url}">
+              <div class="flex items-center justify-between mb-2">
+                <span class="tag text-xs">${articleChineseCategory} / ${articleSubcategoryDisplayName}</span>
+                <time class="text-xs text-[var(--text-muted)]">${formatDate(article.date)}</time>
+              </div>
+              <h3 class="font-semibold text-sm mb-2 hover:text-[var(--accent)] transition-colors line-clamp-2">
+                <a href="${article.url}">${article.title?.[state.lang] || article.title?.zh}</a>
+              </h3>
+              <p class="text-xs text-[var(--text-secondary)] mb-2 line-clamp-2">
+                ${article.description?.[state.lang] || article.description?.zh || article.excerpt}
+              </p>
+            </article>
+            `;
+          }).join('')}
+        </div>
+        ` : `
+        <div class="text-center py-12">
+          <i class="fa fa-search text-4xl text-[var(--text-muted)] mb-4"></i>
+          <p class="text-[var(--text-secondary)]">没有找到相关文章</p>
+        </div>
+        `}
+      </div>
+    `;
+    
+    console.log('Setting tag articles content...');
+    detailContainer.innerHTML = articlesContent;
+    console.log('Tag articles content set successfully');
+    
+    // Update address bar with tag path
+    window.location.hash = `tag/${encodeURIComponent(tag)}`;
+    
+    window.scrollTo(0, 0);
+
+    // Add click handler for back button
+    setTimeout(() => {
+      const backBtn = document.getElementById('back-button');
+      if (backBtn) {
+        console.log('Adding back button listener');
+        backBtn.addEventListener('click', backButtonToMain);
+      } else {
+        console.log('Back button not found');
+      }
+      
+      // Reinitialize article card listeners for the new articles
+      initArticleCardListeners();
+    }, 100);
+  } else {
+    console.log('DOM elements not found');
+  }
+}
+
 function initSubcategoryListeners() {
   // Add click handlers to subcategory cards
   console.log('Initializing subcategory listeners...');
@@ -415,9 +619,12 @@ function initSubcategoryListeners() {
       // Find the parent category section
       const section = card.closest('section');
       const categoryHeading = section.querySelector('h3');
-      const category = categoryHeading.textContent.trim();
+      const categoryName = categoryHeading.textContent.trim();
       
-      console.log('Subcategory clicked:', category, '/', subcategory);
+      // Map the internationalized category name to the actual category value
+      const category = Config.categoryDisplayNameMap[categoryName] || categoryName.toLowerCase();
+      
+      console.log('Subcategory clicked:', categoryName, '->', category, '/', subcategory);
       
       // Show articles for this subcategory
       showSubcategoryArticles(category, subcategory);
@@ -425,12 +632,12 @@ function initSubcategoryListeners() {
   });
 }
 
-function showSubcategoryArticles(category, subcategory) {
-  console.log('Showing articles for:', category, '/', subcategory);
+function showCategoryArticles(category, categoryName) {
+  console.log('Showing articles for category:', category, '/', categoryName);
   
-  // Filter articles by category and subcategory
+  // Filter articles by category
   const articles = state.articles.filter(article => 
-    article.category === category && article.subcategory === subcategory
+    article.category === category
   );
   
   console.log('Found articles:', articles.length);
@@ -446,6 +653,113 @@ function showSubcategoryArticles(category, subcategory) {
     detailContainer.classList.remove('hidden');
     detailContainer.removeAttribute('hidden');
     
+    // Get the Chinese category name
+    const chineseCategory = Config.categoryNameMap[category] || category;
+    
+    // Create category articles content
+    const articlesContent = `
+      <div class="container mx-auto px-4 py-8 max-w-4xl">
+        <button id="back-button" class="mb-6 text-[var(--accent)] hover:text-[var(--accent-hover)] font-medium inline-flex items-center">
+          <i class="fa fa-arrow-left mr-2"></i>
+          ${t('home')}
+        </button>
+        <div class="mb-8">
+          <h1 class="text-2xl font-bold mb-2">${chineseCategory}</h1>
+          <p class="text-sm text-[var(--text-secondary)]">${articles.length} 篇文章</p>
+        </div>
+        ${articles.length > 0 ? `
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          ${articles.map(article => {
+            // Get Chinese category name for the article
+            const articleChineseCategory = Config.categoryNameMap[article.category] || article.category;
+            
+            // Get subcategory display name for the article
+            const articleSubcategoryDisplayName = Config.subcategoryNameMap[article.subcategory] || article.subcategory;
+            
+            return `
+            <article class="card card-hover p-4 article-card" role="article" data-url="${article.url}">
+              <div class="flex items-center justify-between mb-2">
+                <span class="tag text-xs">${articleChineseCategory} / ${articleSubcategoryDisplayName}</span>
+                <time class="text-xs text-[var(--text-muted)]">${formatDate(article.date)}</time>
+              </div>
+              <h3 class="font-semibold text-sm mb-2 hover:text-[var(--accent)] transition-colors line-clamp-2">
+                <a href="${article.url}">${article.title?.[state.lang] || article.title?.zh}</a>
+              </h3>
+              <p class="text-xs text-[var(--text-secondary)] mb-2 line-clamp-2">
+                ${article.description?.[state.lang] || article.description?.zh || article.excerpt}
+              </p>
+            </article>
+            `;
+          }).join('')}
+        </div>
+        ` : `
+        <div class="text-center py-12">
+          <i class="fa fa-search text-4xl text-[var(--text-muted)] mb-4"></i>
+          <p class="text-[var(--text-secondary)]">没有找到相关文章</p>
+        </div>
+        `}
+      </div>
+    `;
+    
+    console.log('Setting category articles content...');
+    detailContainer.innerHTML = articlesContent;
+    console.log('Category articles content set successfully');
+    
+    // Update address bar with category path
+    window.location.hash = `${category}`;
+    
+    window.scrollTo(0, 0);
+
+    // Add click handler for back button
+    setTimeout(() => {
+      const backBtn = document.getElementById('back-button');
+      if (backBtn) {
+        console.log('Adding back button listener');
+        backBtn.addEventListener('click', backButtonToMain);
+      } else {
+        console.log('Back button not found');
+      }
+      
+      // Reinitialize article card listeners for the new articles
+      initArticleCardListeners();
+    }, 100);
+  } else {
+    console.log('DOM elements not found');
+  }
+}
+
+function showSubcategoryArticles(category, subcategory) {
+  console.log('Showing articles for:', category, '/', subcategory);
+  
+  // Map the display subcategory name to the actual subcategory value
+  const actualSubcategory = Config.subcategoryDisplayNameMap[subcategory] || subcategory.toLowerCase().replace(/\s+/g, '-');
+  
+  // Get the display subcategory name (Chinese)
+  const displaySubcategory = Config.subcategoryNameMap[subcategory] || Config.subcategoryNameMap[actualSubcategory] || subcategory;
+  
+  console.log('Mapped subcategory:', subcategory, '->', actualSubcategory);
+  
+  // Filter articles by category and subcategory
+  const articles = state.articles.filter(article => 
+    article.category === category && article.subcategory === actualSubcategory
+  );
+  
+  console.log('Found articles:', articles.length);
+  
+  // Get DOM elements
+  const detailContainer = document.getElementById('article-detail');
+  const mainContent = document.getElementById('main-content');
+  
+  if (detailContainer && mainContent) {
+    // Hide main content and show article detail
+    mainContent.style.display = 'none';
+    detailContainer.style.display = 'block';
+    detailContainer.classList.remove('hidden');
+    detailContainer.removeAttribute('hidden');
+    
+    // Get the Chinese category name
+    const chineseCategory = Config.categoryNameMap[category] || category;
+    
     // Create subcategory articles content
     const articlesContent = `
       <div class="container mx-auto px-4 py-8 max-w-4xl">
@@ -454,28 +768,49 @@ function showSubcategoryArticles(category, subcategory) {
           ${t('home')}
         </button>
         <div class="mb-8">
-          <h1 class="text-2xl font-bold mb-2">${category} / ${subcategory}</h1>
+          <h1 class="text-2xl font-bold mb-2">${chineseCategory} / ${displaySubcategory}</h1>
           <p class="text-sm text-[var(--text-secondary)]">${articles.length} 篇文章</p>
         </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-          ${articles.map(article => `
+        ${articles.length > 0 ? `
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          ${articles.map(article => {
+            // Get Chinese category name for the article
+            const articleChineseCategory = Config.categoryNameMap[article.category] || article.category;
+            
+            // Get subcategory display name for the article
+            const articleSubcategoryDisplayName = Config.subcategoryNameMap[article.subcategory] || article.subcategory;
+            
+            return `
             <article class="card card-hover p-4 article-card" role="article" data-url="${article.url}">
+              <div class="flex items-center justify-between mb-2">
+                <span class="tag text-xs">${articleChineseCategory} / ${articleSubcategoryDisplayName}</span>
+                <time class="text-xs text-[var(--text-muted)]">${formatDate(article.date)}</time>
+              </div>
               <h3 class="font-semibold text-sm mb-2 hover:text-[var(--accent)] transition-colors line-clamp-2">
                 <a href="${article.url}">${article.title?.[state.lang] || article.title?.zh}</a>
               </h3>
               <p class="text-xs text-[var(--text-secondary)] mb-2 line-clamp-2">
-                ${article.description ? (article.description.zh || article.description) : article.excerpt}
+                ${article.description?.[state.lang] || article.description?.zh || article.excerpt}
               </p>
-              <time class="text-xs text-[var(--text-muted)]">${formatDate(article.date)}</time>
             </article>
-          `).join('')}
+            `;
+          }).join('')}
         </div>
+        ` : `
+        <div class="text-center py-12">
+          <i class="fa fa-search text-4xl text-[var(--text-muted)] mb-4"></i>
+          <p class="text-[var(--text-secondary)]">没有找到相关文章</p>
+        </div>
+        `}
       </div>
     `;
     
     console.log('Setting subcategory articles content...');
     detailContainer.innerHTML = articlesContent;
     console.log('Subcategory articles content set successfully');
+    
+    // Update address bar with subcategory path
+    window.location.hash = `${category}/${actualSubcategory}`;
     
     window.scrollTo(0, 0);
 

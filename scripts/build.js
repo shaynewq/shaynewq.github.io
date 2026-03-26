@@ -19,6 +19,9 @@ const CONTENT_DIR = path.join(__dirname, '../content');
 const DIST_DIR = path.join(__dirname, '../dist');
 const TEMPLATE_DIR = path.join(__dirname, '../templates');
 
+// 导入配置
+const { categoryNameMap, categoryDisplayNameMap, subcategoryNameMap, subcategoryDisplayNameMap, categoryIconMap, categoryOrderMap, i18n } = require('./config');
+
 /**
  * 加载模板文件
  */
@@ -112,16 +115,29 @@ function generateCategoriesHtml(groupedArticles, categoryConfig) {
 }
 
 /**
+ * 格式化日期为 YYYY-MM-DD
+ */
+function formatDate(dateStr) {
+  try {
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return dateStr;
+    return date.toISOString().split('T')[0];
+  } catch (e) {
+    return dateStr;
+  }
+}
+
+/**
  * 生成文章列表 HTML
  */
 function generateArticlesHtml(articles) {
   return articles.slice(0, 6).map((article, index) => `
     <article class="card card-hover p-6 article-card" role="article" data-url="${article.url}">
-      <div class="flex items-start justify-between mb-4">
-        <span class="tag" aria-label="分类: ${article.category} / ${article.subcategory}">
+      <div class="flex items-center justify-between mb-4">
+        <span class="tag text-xs" aria-label="分类: ${article.category} / ${article.subcategory}">
           ${article.category} / ${article.subcategory}
         </span>
-        <time class="text-sm text-[var(--text-muted)]" datetime="${article.date}">${article.date}</time>
+        <time class="text-xs text-[var(--text-muted)]" datetime="${article.date}">${formatDate(article.date)}</time>
       </div>
       <h3 class="font-semibold text-lg mb-3 hover:text-[var(--accent)] transition-colors line-clamp-2">
         <a href="${article.url}">${article.title.zh || article.title}</a>
@@ -168,7 +184,9 @@ function generateHomePage(articles) {
       tags: a.tags,
       author: a.author,
       html: a.html
-    }))));
+    }))))
+    .replace('{{i18n}}', JSON.stringify(i18n));
+
 }
 
 /**
@@ -199,7 +217,7 @@ async function build() {
 
   if (fs.existsSync(srcJsDir)) {
     ensureDir(destJsDir);
-    const jsFiles = fs.readdirSync(srcJsDir).filter(f => f.endsWith('.js'));
+    const jsFiles = fs.readdirSync(srcJsDir).filter(f => f.endsWith('.js') && f !== 'config.js');
     jsFiles.forEach(file => {
       const src = path.join(srcJsDir, file);
       const dest = path.join(destJsDir, file);
@@ -207,6 +225,26 @@ async function build() {
     });
     console.log(`✅ Copied ${jsFiles.length} JavaScript file(s)`);
   }
+
+  // Generate frontend config file
+  console.log('📝 Generating frontend config file...');
+  const frontendConfig = {
+    categoryNameMap,
+    categoryDisplayNameMap,
+    subcategoryNameMap,
+    subcategoryDisplayNameMap
+  };
+
+  const frontendConfigContent = `/**
+ * 配置文件
+ * 存储目录中英文的映射关系
+ */
+
+window.Config = ${JSON.stringify(frontendConfig, null, 2)};
+`;
+
+  fs.writeFileSync(path.join(destJsDir, 'config.js'), frontendConfigContent);
+  console.log('✅ Generated frontend config file: config.js');
 
   console.log('🎉 Build completed successfully!');
 }

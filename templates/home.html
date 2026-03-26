@@ -47,6 +47,7 @@
       <ul class="space-y-1 bg-[var(--bg-secondary)] rounded-lg p-2" role="menubar">
         <li><a href="https://github.com/shaynewq/shaynewq.github.io/blob/main/README.md" class="block py-2 px-3 hover:bg-[var(--bg-tertiary)] rounded-md" role="menuitem" target="_blank">README</a></li>
         <li><a href="#categories" class="block py-2 px-3 hover:bg-[var(--bg-tertiary)] rounded-md" role="menuitem" data-i18n="categories">知识分类</a></li>
+        <li><a href="#tags" class="block py-2 px-3 hover:bg-[var(--bg-tertiary)] rounded-md" role="menuitem" data-i18n="tags">标签</a></li>
         <li><a href="#articles" class="block py-2 px-3 hover:bg-[var(--bg-tertiary)] rounded-md" role="menuitem" data-i18n="articles">最新文章</a></li>
         <li><a href="#section-about" class="block py-2 px-3 hover:bg-[var(--bg-tertiary)] rounded-md" role="menuitem" data-i18n="about">关于</a></li>
       </ul>
@@ -88,6 +89,19 @@
         <p class="text-[var(--text-secondary)]">按主题组织的知识内容，方便快速定位和学习</p>
       </div>
       {{categories}}
+    </div>
+  </section>
+
+  <!-- 标签 -->
+  <section id="tags" class="py-12 md:py-16 bg-[var(--bg-secondary)]">
+    <div class="container mx-auto px-4">
+      <div class="text-center mb-10">
+        <h2 class="text-2xl md:text-3xl font-bold mb-2" data-i18n="tags">标签</h2>
+        <p class="text-[var(--text-secondary)]">按标签浏览文章，发现相关内容</p>
+      </div>
+      <div class="flex flex-wrap justify-center gap-3" id="tags-container">
+        <!-- 标签将通过JavaScript动态生成 -->
+      </div>
     </div>
   </section>
 

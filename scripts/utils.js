@@ -5,6 +5,14 @@
 const fs = require('fs');
 const path = require('path');
 
+// 导入配置
+const {
+  categoryNameMap,
+  subcategoryNameMap,
+  categoryIconMap,
+  categoryOrderMap
+} = require('./config.js');
+
 /**
  * 确保目录存在
  */
@@ -102,36 +110,40 @@ function groupByCategory(articles) {
  * 获取分类配置
  */
 function getCategoryConfig() {
-  return {
-    'qi': {
-      displayName: '器',
-      icon: 'fa-cubes',
-      subcategories: ['cloud-native', 'big-data', 'storage', 'development', 'ops'],
-      subcategoryNames: ['云原生', '大数据', '存储', '开发', '运维'],
-      order: 1
-    },
-    'shu': {
-      displayName: '术',
-      icon: 'fa-flask',
-      subcategories: ['AI', 'network', 'cs-basics'],
-      subcategoryNames: ['AI', '网络', '计算机基础'],
-      order: 2
-    },
-    'dao': {
-      displayName: '道',
-      icon: 'fa-compass',
-      subcategories: ['distributed'],
-      subcategoryNames: ['分布式'],
-      order: 3
-    },
-    'about': {
-      displayName: '关于',
-      icon: 'fa-user',
-      subcategories: ['resume'],
-      subcategoryNames: ['个人简历'],
-      order: 4
-    }
-  };
+  // 扫描content目录，动态获取子分类
+  const contentDir = path.join(__dirname, '../content');
+  const config = {};
+  
+  if (fs.existsSync(contentDir)) {
+    const categories = fs.readdirSync(contentDir);
+    
+    categories.forEach(category => {
+      const categoryPath = path.join(contentDir, category);
+      if (fs.statSync(categoryPath).isDirectory() && categoryNameMap[category]) {
+        // 获取该分类下的所有子目录
+        const subcategories = fs.readdirSync(categoryPath).filter(item => {
+          const itemPath = path.join(categoryPath, item);
+          return fs.statSync(itemPath).isDirectory();
+        });
+        
+        // 为每个子分类生成名称
+        const subcategoryNames = subcategories.map(sub => {
+          return subcategoryNameMap[sub] || sub;
+        });
+        
+        // 更新配置
+        config[category] = {
+          displayName: categoryNameMap[category],
+          icon: categoryIconMap[category],
+          order: categoryOrderMap[category],
+          subcategories: subcategories,
+          subcategoryNames: subcategoryNames
+        };
+      }
+    });
+  }
+  
+  return config;
 }
 
 /**
